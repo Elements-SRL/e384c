@@ -8,6 +8,8 @@
 #include <string>
 #include <vector>
 #include <cstdint>
+#include <cstring>
+#include <algorithm>
 
 #include "e384c.h"
 
@@ -122,7 +124,40 @@ inline std::vector<Measurement_t> vec_meas(const E384Measurement* p, size_t n) {
     return v;
 }
 
+/*! std::vector<bool> is bit-packed: element-wise conversion is mandatory,
+ *  a reinterpret_cast of the uint8_t array would be undefined behavior. */
+inline std::vector<bool> vec_bool(const uint8_t* p, size_t n) {
+    std::vector<bool> v(n);
+    for (size_t i = 0; i < n; ++i) {
+        v[i] = (p[i] != 0);
+    }
+    return v;
+}
+
+/*==================================================*
+ *  Vector-out helper for the two-call protocol     *
+ *  (see E384C_DECL_GET_RANGED_LIST in e384c.h)     *
+ *==================================================*/
+
+inline void fill_ranged_list(const std::vector<RangedMeasurement_t>& src,
+                             E384RangedMeasurement* out,
+                             size_t* count) {
+    const size_t available = src.size();
+    if (out != nullptr) {
+        const size_t n = std::min(*count, available);
+        for (size_t i = 0; i < n; ++i) {
+            out[i] = to_c(src[i]);
+        }
+    }
+    *count = available;
+}
+
 } // namespace e384c
+
+/*! Opaque-in-C list of device IDs; owns its strings. */
+struct E384DeviceList {
+    std::vector<std::string> ids;
+};
 
 /*==================================================================*
  *  Wrapper macros                                                  *
@@ -134,15 +169,15 @@ inline std::vector<Measurement_t> vec_meas(const E384Measurement* p, size_t n) {
  *==================================================================*/
 
 #define E384C_GUARD_BEGIN try {
-#define E384C_GUARD_END                                   \
-    } catch (...) {                                       \
-        return static_cast<E384Err>(e384CommLib::ErrorUnknown); \
+#define E384C_GUARD_END                                            \
+    } catch (...) {                                                \
+        return static_cast<E384Err>(e384CommLib::ErrorUnknown);    \
     }
 
 /*! Null-handle check shared by every instance method. */
-#define E384C_CHECK_DEVICE(device)                                  \
-    if ((device) == nullptr) {                                      \
-        return static_cast<E384Err>(e384CommLib::ErrorDeviceNotConnected); \
+#define E384C_CHECK_DEVICE(device)                                          \
+    if ((device) == nullptr) {                                              \
+        return static_cast<E384Err>(e384CommLib::ErrorDeviceNotConnected);  \
     }
 
 /*! Shape A: (vector<uint16_t> channels, vector<Measurement_t> values,
@@ -162,7 +197,38 @@ inline std::vector<Measurement_t> vec_meas(const E384Measurement* p, size_t n) {
         E384C_GUARD_END                                                       \
     }
 
-/*! Shape E: single RangedMeasurement_t out-param getter. */
+/*! Shape B: (vector<uint16_t> channels, bool applyFlag) -> ErrorCodes_t */
+#define E384C_WRAP_CHANNEL_UPDATE(cname, method)                              \
+    E384C_API E384Err cname(E384Device* device,                               \
+                            const uint16_t* channelIndexes,                   \
+                            size_t count,                                     \
+                            int32_t applyFlag) {                              \
+        E384C_CHECK_DEVICE(device)                                            \
+        E384C_GUARD_BEGIN                                                     \
+        return e384c::to_c(e384c::md(device)->method(                         \
+            e384c::vec_u16(channelIndexes, count),                            \
+            applyFlag != 0));                                                 \
+        E384C_GUARD_END                                                       \
+    }
+
+/*! Shape C: (vector<uint16_t> channels, vector<bool> onValues,
+ *  bool applyFlag) -> ErrorCodes_t */
+#define E384C_WRAP_CHANNEL_BOOL_CMD(cname, method)                            \
+    E384C_API E384Err cname(E384Device* device,                               \
+                            const uint16_t* channelIndexes,                   \
+                            const uint8_t* onValues,                          \
+                            size_t count,                                     \
+                            int32_t applyFlag) {                              \
+        E384C_CHECK_DEVICE(device)                                            \
+        E384C_GUARD_BEGIN                                                     \
+        return e384c::to_c(e384c::md(device)->method(                         \
+            e384c::vec_u16(channelIndexes, count),                            \
+            e384c::vec_bool(onValues, count),                                 \
+            applyFlag != 0));                                                 \
+        E384C_GUARD_END                                                       \
+    }
+
+/*! Shape E, single out-param RangedMeasurement getter. */
 #define E384C_WRAP_GET_RANGED(cname, method)                                  \
     E384C_API E384Err cname(E384Device* device,                               \
                             E384RangedMeasurement* out) {                     \
@@ -175,6 +241,32 @@ inline std::vector<Measurement_t> vec_meas(const E384Measurement* p, size_t n) {
         const auto err = e384c::md(device)->method(range);                    \
         if (err == e384CommLib::Success) {                                    \
             *out = e384c::to_c(range);                                        \
+        }                                                                     \
+        return e384c::to_c(err);                                              \
+        E384C_GUARD_END                                                       \
+    }
+
+/*! Shape E, list variant with default-index out-param, two-call protocol.
+ *  The underlying C++ getter runs on BOTH the sizing and the fill call;
+ *  the shim is stateless by design. Fine for these cold-path getters. */
+#define E384C_WRAP_GET_RANGED_LIST(cname, method)                             \
+    E384C_API E384Err cname(E384Device* device,                               \
+                            E384RangedMeasurement* out,                       \
+                            size_t* count,                                    \
+                            uint16_t* outDefaultIdx) {                        \
+        E384C_CHECK_DEVICE(device)                                            \
+        if (count == nullptr) {                                               \
+            return static_cast<E384Err>(e384CommLib::ErrorUnknown);           \
+        }                                                                     \
+        E384C_GUARD_BEGIN                                                     \
+        std::vector<e384CommLib::RangedMeasurement_t> ranges;                 \
+        uint16_t defaultIdx = 0;                                              \
+        const auto err = e384c::md(device)->method(ranges, defaultIdx);       \
+        if (err == e384CommLib::Success) {                                    \
+            e384c::fill_ranged_list(ranges, out, count);                      \
+            if (outDefaultIdx != nullptr) {                                   \
+                *outDefaultIdx = defaultIdx;                                  \
+            }                                                                 \
         }                                                                     \
         return e384c::to_c(err);                                              \
         E384C_GUARD_END                                                       \

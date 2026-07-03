@@ -241,4 +241,24 @@ E384C_WRAP_GET_RANGED_LIST(e384_getVCVoltageRanges, getVCVoltageRanges)
 E384C_WRAP_GET_RANGED_LIST(e384_getCCCurrentRanges, getCCCurrentRanges)
 E384C_WRAP_GET_RANGED_LIST(e384_getCCVoltageRanges, getCCVoltageRanges)
 
+/*==============================*
+ *  OK calibration RAM/EEPROM   *
+ *==============================*/
+
+E384C_WRAP_ACTION(e384_okMoveCalibrationEepromToRams, okMoveCalibrationEepromToRams)
+E384C_WRAP_ACTION(e384_okMoveCalibrationRamsToEeprom, okMoveCalibrationRamsToEeprom)
+E384C_WRAP_ACTION(e384_okReadCalibrationRam,          okReadCalibrationRam)
+
+E384C_WRAP_U16(e384_okSelectCalibrationRam, okSelectCalibrationRam)
+
+/*! Two-scalar (uint16_t address, uint8_t value); hand-written, no macro. */
+E384C_API E384Err e384_okWriteCalibrationRam(E384Device* device,
+                                             uint16_t address,
+                                             uint8_t value) {
+    E384C_CHECK_DEVICE(device)
+    E384C_GUARD_BEGIN
+    return e384c::to_c(e384c::md(device)->okWriteCalibrationRam(address, value));
+    E384C_GUARD_END
+}
+
 } /* extern "C" */

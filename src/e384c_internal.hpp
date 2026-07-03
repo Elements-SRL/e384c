@@ -228,6 +228,24 @@ struct E384DeviceList {
         E384C_GUARD_END                                                       \
     }
 
+/*! Shape D0: no-arg action () -> ErrorCodes_t. Device is the only input. */
+#define E384C_WRAP_ACTION(cname, method)                                      \
+    E384C_API E384Err cname(E384Device* device) {                             \
+        E384C_CHECK_DEVICE(device)                                            \
+        E384C_GUARD_BEGIN                                                     \
+        return e384c::to_c(e384c::md(device)->method());                      \
+        E384C_GUARD_END                                                       \
+    }
+
+/*! Shape D1: single uint16_t scalar-in (idx) -> ErrorCodes_t. */
+#define E384C_WRAP_U16(cname, method)                                         \
+    E384C_API E384Err cname(E384Device* device, uint16_t value) {             \
+        E384C_CHECK_DEVICE(device)                                            \
+        E384C_GUARD_BEGIN                                                     \
+        return e384c::to_c(e384c::md(device)->method(value));                 \
+        E384C_GUARD_END                                                       \
+    }
+
 /*! Shape E, single out-param RangedMeasurement getter. */
 #define E384C_WRAP_GET_RANGED(cname, method)                                  \
     E384C_API E384Err cname(E384Device* device,                               \

@@ -287,6 +287,27 @@ E384C_DECL_GET_RANGED_LIST(e384_getVCVoltageRanges)
 E384C_DECL_GET_RANGED_LIST(e384_getCCCurrentRanges)
 E384C_DECL_GET_RANGED_LIST(e384_getCCVoltageRanges)
 
+/*==================================================================*
+ *  OK calibration RAM / EEPROM.                                    *
+ *==================================================================*/
+
+/*! Copy the calibration EEPROM contents into the RAMs. */
+E384C_API E384Err e384_okMoveCalibrationEepromToRams(E384Device* device);
+
+/*! Copy the calibration RAMs back into the EEPROM. */
+E384C_API E384Err e384_okMoveCalibrationRamsToEeprom(E384Device* device);
+
+/*! Select the active calibration RAM by index. */
+E384C_API E384Err e384_okSelectCalibrationRam(E384Device* device, uint16_t ramIdx);
+
+/*! Write one byte to the selected calibration RAM at the given address. */
+E384C_API E384Err e384_okWriteCalibrationRam(E384Device* device,
+                                             uint16_t address,
+                                             uint8_t value);
+
+/*! Trigger a read of the selected calibration RAM. */
+E384C_API E384Err e384_okReadCalibrationRam(E384Device* device);
+
 #ifdef __cplusplus
 } /* extern "C" */
 #endif

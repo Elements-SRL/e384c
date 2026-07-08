@@ -1228,6 +1228,15 @@ E384C_API E384Err e384_setCurrentProtocolSin(E384Device* device,
     E384C_GUARD_END
 }
 
+/*==================================================================*
+ *  Protocol / command execution control.                           *
+ *==================================================================*/
+
+E384C_WRAP_ACTION(e384_sendCommands,    sendCommands)
+E384C_WRAP_ACTION(e384_startProtocol,   startProtocol)
+E384C_WRAP_ACTION(e384_stopProtocol,    stopProtocol)
+E384C_WRAP_ACTION(e384_startStateArray, startStateArray)
+
 /*==============================*
  *  convert*Values family       *
  *==============================*/

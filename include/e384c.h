@@ -867,6 +867,22 @@ E384C_API E384Err e384_setCurrentProtocolSin(E384Device* device,
                                              size_t activeDigitalOutputsCount);
 
 /*==================================================================*
+ *  Protocol / command execution control.                           *
+ *==================================================================*/
+
+/*! Send any pending device commands. */
+E384C_API E384Err e384_sendCommands(E384Device* device);
+
+/*! Start the currently configured stimulus protocol. */
+E384C_API E384Err e384_startProtocol(E384Device* device);
+
+/*! Stop the currently running stimulus protocol. */
+E384C_API E384Err e384_stopProtocol(E384Device* device);
+
+/*! Start the currently configured state array. */
+E384C_API E384Err e384_startStateArray(E384Device* device);
+
+/*==================================================================*
  *  convert*Values family: raw int16_t<->double buffer conversion.  *
  *  These already cross the C boundary cleanly -- no marshaling.    *
  *==================================================================*/

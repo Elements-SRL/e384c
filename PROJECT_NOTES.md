@@ -352,7 +352,11 @@ macro shapes beyond the original 7 came to exist.
   overload separately, plus the 2 `std::string`-returning getters that don't
   show up in a plain `ErrorCodes_t` grep).
 - **246 of those 253 are now wrapped** (~97%). The 7 that aren't are listed
-  under "Deferred / out of scope" below, each deliberately.
+  under "Deferred / out of scope" below, each deliberately. (Previous
+  revisions of this doc double-counted `sendCommands`, `startProtocol`,
+  `stopProtocol`, and `startStateArray` as wrapped via the
+  `E384C_WRAP_ACTION` row above when they were not yet implemented — they are
+  now genuinely wrapped, and the 246/253 figure reflects that fix.)
 - Additionally, **36 `ChannelModel`/`BoardModel` methods** are wrapped via
   the new opaque-handle family (Proposal B) — these are outside the 253
   count above since they belong to different classes entirely.

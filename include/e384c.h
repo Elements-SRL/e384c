@@ -8,7 +8,9 @@
 #include <stdint.h>
 #include <stddef.h>
 
-#if defined(_WIN32)
+#if defined(E384C_STATIC)
+#  define E384C_API
+#elif defined(_WIN32)
 #  if defined(E384C_BUILD)
 #    define E384C_API __declspec(dllexport)
 #  else

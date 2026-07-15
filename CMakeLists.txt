@@ -15,12 +15,14 @@ list(APPEND CMAKE_PREFIX_PATH "${E384COMMLIB_PATH_CMAKE}")
 find_package(e384commlib REQUIRED CONFIG)
 
 # ---- The C shim library --------------------------------------------------
-add_library(e384c SHARED
+add_library(e384c STATIC
     src/e384c_shim.cpp
 )
 
 # E384C_BUILD switches E384C_API to dllexport on Windows
+# E384C_STATIC disables dllexport/dllimport entirely (static builds need no import/export decorations)
 target_compile_definitions(e384c PRIVATE E384C_BUILD)
+target_compile_definitions(e384c PUBLIC E384C_STATIC)
 
 target_include_directories(e384c PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
@@ -38,8 +40,6 @@ set_target_properties(e384c PROPERTIES
 
 # ---- Install -------------------------------------------------------------
 install(TARGETS e384c
-    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
     ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
 )
 
